@@ -1,49 +1,44 @@
-import os
-
-
 from scraper.common import ScrapeResult, Scraper, ScraperFactory
 
 
-class BestBuyScrapeResult(ScrapeResult):
+class MikesComputerShopScrapeResult(ScrapeResult):
     def parse(self):
         alert_subject = 'In Stock'
         alert_content = ''
 
         # get name of product
-        tag = self.soup.body.find('div', class_='sku-title')
+        tag = self.soup.body.select_one('.gd-1.Title')
         if tag:
             alert_content += tag.text.strip() + '\n'
         else:
             self.logger.warning(f'missing title: {self.url}')
 
         # get listed price
-        tag = self.soup.body.select_one('div.priceView-customer-price > span')
-        price_str = self.set_price(tag)
+        tag = self.soup.body.select_one('.price')
+        price_str = self.set_price(tag.getText())
         if price_str:
             alert_subject = f'In Stock for {price_str}'
         else:
             self.logger.warning(f'missing price: {self.url}')
 
-        # check for add to cart button
-        tag = self.soup.body.find('div', class_='fulfillment-add-to-cart-button')
-        if tag and 'add to cart' in tag.text.lower():
+        # check for state
+        tag = self.soup.body.select_one('gd-1.State.Available')
+        if tag:
             self.alert_subject = alert_subject
             self.alert_content = f'{alert_content.strip()}\n{self.url}'
 
 
+
 @ScraperFactory.register
-class BestBuyScraper(Scraper):
+class MikesComputerShopScraper(Scraper):
     @staticmethod
     def get_domain():
-        return 'bestbuy'
+        return 'mikescomputershop'
 
     @staticmethod
     def get_driver_type():
-        if os.uname().machine == 'x86_64':
-            return 'puppeteer'
-        else:
-            return 'selenium'
+        return 'requests'
 
     @staticmethod
     def get_result_type():
-        return BestBuyScrapeResult
+        return MikesComputerShopScrapeResult
